@@ -1,0 +1,21 @@
+package com.lukdva.meetings.exceptions.badRequest;
+
+import com.lukdva.meetings.exceptions.BaseExceptionInterface;
+import com.lukdva.meetings.models.Meeting;
+import com.lukdva.meetings.models.User;
+import lombok.Getter;
+
+@Getter
+public class PersonHasConflictingMeetingException extends BadRequestException implements BaseExceptionInterface {
+    private final User person;
+    private final Meeting meeting;
+    private final long errorCode = 1L;
+
+
+    public PersonHasConflictingMeetingException(User person, Meeting meeting) {
+        super(String.format("PersonId: %s , Meeting to be added to Id: %s", person.getId(), meeting.getId()));
+        this.person = person;
+        this.meeting = meeting;
+    }
+
+}

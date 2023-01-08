@@ -1,0 +1,2 @@
+insert into users(email,name,password_hash,role,username) values('lukas@gmail.com', 'Lukas', '$2a$10$lCcou7HaiWYhkCj4KYwYaOa/FI.3ojYl6jp6bKz9Dl9nllh8cfm92', 'ROLE_USER', 'user');
+insert into users(email,name,password_hash,role,username) values('admin@gmail.com', 'Lukas', '$2a$10$5l8sr5bzpDY402zGSbOWMuwdTVoifDTANCEw8KvyWt1I6Fr0ong7W', 'ROLE_ADMIN', 'admin');
