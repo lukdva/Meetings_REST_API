@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.data.jpa.domain.Specification.where;
 
@@ -46,14 +45,9 @@ public class MeetingsService {
         return meetingRepository.findById(id).orElseThrow(() -> new RuntimeException("Meeting not found"));
     }
 
-    public List<Meeting> listOfMeetingsPersonIsIn(User user) {
-        List<Meeting> meetings = meetingRepository.findAll();
-        return meetings.stream().filter(meeting -> meeting.doesContainPersonAsAttendee(user.getId())).collect(Collectors.toList());
-    }
-
     public boolean personHasConflictingMeetings(User user, Meeting meetingToBeAttended) {
-        List<Meeting> list = listOfMeetingsPersonIsIn(user);
-        return list.stream().anyMatch(meeting -> dateRangesOverlap(meeting, meetingToBeAttended));
+        List<Meeting> list = meetingRepository.findAll(where(meetingsThatUserIsAttending(user.getId())).and(dateRangesOverlap(meetingToBeAttended)));
+        return list.size() > 0;
 
     }
 
@@ -104,10 +98,16 @@ public class MeetingsService {
         meetingRepository.deleteById(meetingId);
     }
 
-    public boolean dateRangesOverlap(Meeting meeting1, Meeting meeting2) {
-        return (meeting1.getStartDate().isBefore(meeting2.getEndDate()) && meeting1.getEndDate().isAfter(meeting2.getStartDate()));
+    static Specification<Meeting> dateRangesOverlap(Meeting meetingToAttend){
+        return (meeting, query, cb) -> cb.and(cb.lessThan(meeting.get("startDate"), meetingToAttend.getEndDate()), cb.greaterThan(meeting.get("endDate"), meetingToAttend.getStartDate()));
     }
-
+    static Specification<Meeting> meetingsThatUserIsAttending(Long userId){
+        return (meeting, query, cb) -> {
+            Join<Attendee, Meeting> meetingAttendees = meeting.join("attendees");
+            query.groupBy(meeting.get("id"));
+            return cb.equal(meetingAttendees.get("user").get("id"), userId);
+        };
+    }
     static Specification<Meeting> startDateIsAfter(LocalDateTime start) {
         return (meeting, query, cb) -> cb.greaterThan(meeting.get("startDate"), start);
     }
@@ -169,7 +169,5 @@ public class MeetingsService {
             spec = spec.and(endDateIsBefore(filters.getEnd().plusDays(1).atStartOfDay()));
         }
         return meetingRepository.findAll(spec);
-
-
     }
 }
