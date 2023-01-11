@@ -3,7 +3,7 @@
 This repository contains REST API for managing Meetings.     
 Also, project has authentication and authorization implemented.    
 Bearer Authorization is required for most endpoints(except /login and /users/post)    
-H2 In memory database is used, everytime project is launched clean DB is generated containing 2 users:    
+H2 In memory database is used. Everytime project is started - clean DB is generated containing 2 users:    
 1. User1
     1. username:user
     2. password:user
