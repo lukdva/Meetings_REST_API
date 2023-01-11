@@ -15,10 +15,10 @@ H2 In memory database is used, everytime project is launched clean DB is generat
 
 JDK version 17.0.4.1
 ## Pre-requisites
-Before launching the project generate app.key and app.pub files in /src/main/resources package.
-In app.key put private RSA key in PKCS #8 format
-In app.pub put public RSA key in PKCS #8 format
-Keys can be generated at https://www.csfieldguide.org.nz/en/interactives/rsa-key-generator/
+Before launching the project generate app.key and app.pub files in /src/main/resources package.    
+In app.key put private RSA key in PKCS #8 format    
+In app.pub put public RSA key in PKCS #8 format    
+Keys can be generated at https://www.csfieldguide.org.nz/en/interactives/rsa-key-generator/   
 ## Quickstart
 You can start project by opening terminal and going to root directory and executing command:
 ```
