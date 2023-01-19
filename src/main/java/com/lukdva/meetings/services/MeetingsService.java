@@ -1,17 +1,19 @@
 package com.lukdva.meetings.services;
 
-import com.lukdva.meetings.models.*;
+import com.lukdva.meetings.models.Attendee;
+import com.lukdva.meetings.models.Meeting;
+import com.lukdva.meetings.models.MeetingFilter;
+import com.lukdva.meetings.models.User;
 import com.lukdva.meetings.repositories.AttendeesRepository;
 import com.lukdva.meetings.repositories.MeetingRepository;
 import com.lukdva.meetings.utils.JwtUtils;
-import jakarta.persistence.criteria.Join;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.lukdva.meetings.repositories.MeetingSpecifications.*;
 import static org.springframework.data.jpa.domain.Specification.where;
 
 @Service
@@ -26,10 +28,7 @@ public class MeetingsService {
         User user = userService.getUser(JwtUtils.getUserId());
         meeting.setResponsiblePerson(user);
 
-        Attendee attendee = new Attendee(); //TODO create attendee service? and move this logic
-        attendee.setUser(user);
-        attendee.setMeeting(meeting);
-        attendee.setAdded(LocalDateTime.now());
+        Attendee attendee = new Attendee(user, meeting);
         meeting.addAttendee(attendee);
 
         if (personHasConflictingMeetings(meeting.getResponsiblePerson(), meeting)) {
@@ -39,18 +38,15 @@ public class MeetingsService {
         //TODO move responsible person's addition as attendee here (from MeetingAssembler)
         meetingRepository.save(meeting);
     }
-
     public Meeting getMeeting(Long id) {
 //        return meetingRepository.findById(id).orElseThrow(() -> new NotFoundException("Meeting", id)); //TODO refactor this exception class
         return meetingRepository.findById(id).orElseThrow(() -> new RuntimeException("Meeting not found"));
     }
-
     public boolean personHasConflictingMeetings(User user, Meeting meetingToBeAttended) {
         List<Meeting> list = meetingRepository.findAll(where(meetingsThatUserIsAttending(user.getId())).and(dateRangesOverlap(meetingToBeAttended)));
         return list.size() > 0;
 
     }
-
     public Meeting addPersonToMeeting(Long meetingId, Long userId) {
         User user = userService.getUser(userId);
         Meeting meeting = getMeeting(meetingId);
@@ -63,16 +59,12 @@ public class MeetingsService {
             throw new RuntimeException("Person has conflicting meeting");
         }
 
-        Attendee attendee = new Attendee(); //TODO create attendee service? and move this logic
-        attendee.setUser(user);
-        attendee.setMeeting(meeting);
-        attendee.setAdded(LocalDateTime.now());
+        Attendee attendee = new Attendee(user, meeting);
         attendeesRepository.save(attendee);
 
-        meeting.addAttendee(attendee);
+        meeting.addAttendee(attendee); //TODO Is this neccessary?
         return meeting;
     }
-
     public void removeAttendeeFromMeeting(Long meetingId, Long attendeeId) {
         Meeting meeting = getMeeting(meetingId);
         Attendee attendee = attendeesRepository.findById(attendeeId).orElseThrow(() -> new RuntimeException("Attendee not found")); //TODO move to attendee service and add specific exception
@@ -83,67 +75,19 @@ public class MeetingsService {
         }
         if (attendee.getUser().getId().equals(meeting.getResponsiblePerson().getId())) {
 //            throw new CannotRemoveResponsiblePersonFromMeetingException(meeting.getResponsiblePerson(), meeting);// TODO refactor exception
-            throw new RuntimeException("cannot remove responsible person");
+            throw new RuntimeException("Cannot remove responsible person from meeting");
         }
         attendeesRepository.deleteById(attendeeId);
     }
-
-    public void deleteMeeting(Long meetingId, Long userId) {
-
+    public void deleteMeeting(Long meetingId) {
+        Long userId = JwtUtils.getUserId();
         Meeting meeting = getMeeting(meetingId);
-        if (!meeting.getResponsiblePerson().getId().equals(userId)) {//TODO maybe move userId extraction here (from controller)
+        if (!meeting.getResponsiblePerson().getId().equals(userId)) {
 //            throw new WrongEntityOwnerException("Meeting", meetingId, userId);// TODO refactor exception
             throw new RuntimeException("Unauthorized");
         }
         meetingRepository.deleteById(meetingId);
     }
-
-    static Specification<Meeting> dateRangesOverlap(Meeting meetingToAttend){
-        return (meeting, query, cb) -> cb.and(cb.lessThan(meeting.get("startDate"), meetingToAttend.getEndDate()), cb.greaterThan(meeting.get("endDate"), meetingToAttend.getStartDate()));
-    }
-    static Specification<Meeting> meetingsThatUserIsAttending(Long userId){
-        return (meeting, query, cb) -> {
-            Join<Attendee, Meeting> meetingAttendees = meeting.join("attendees");
-            query.groupBy(meeting.get("id"));
-            return cb.equal(meetingAttendees.get("user").get("id"), userId);
-        };
-    }
-    static Specification<Meeting> startDateIsAfter(LocalDateTime start) {
-        return (meeting, query, cb) -> cb.greaterThan(meeting.get("startDate"), start);
-    }
-
-    static Specification<Meeting> endDateIsBefore(LocalDateTime end) {
-        return (meeting, query, cb) -> cb.greaterThan(meeting.get("endDate"), end);
-    }
-
-    static Specification<Meeting> containsDescription(String description) {
-        return (meeting, query, cb) -> cb.like(meeting.get("description"), "%" + description + "%");
-    }
-
-    static Specification<Meeting> hasCategory(Category category) {
-        return (meeting, query, cb) -> cb.equal(meeting.get("category"), category);
-    }
-
-    static Specification<Meeting> hasType(Type type) {
-        return (meeting, query, cb) -> cb.equal(meeting.get("type"), type);
-    }
-
-    private Specification<Meeting> responsiblePersonHasId(Long id) {
-        return (meeting, query, cb) -> {
-            Join<User, Meeting> userMeetings = meeting.join("responsiblePerson");
-            return cb.equal(userMeetings.get("id"), id);
-        };
-    }
-
-    private Specification<Meeting> hasMoreOrEqualAttendees(Integer count) {
-        return (meeting, query, cb) -> {
-//            Join<Attendee, Meeting> meetingAttendees = meeting.join("attendees");
-//            query.groupBy(meeting.get("id"));
-//            query.having(cb.greaterThan(cb.count(meetingAttendees), count));
-            return cb.greaterThanOrEqualTo(cb.size(meeting.get("attendees")), count);
-        };
-    }
-
     public List<Meeting> getFilteredMeetings(MeetingFilter filters) {
         Specification<Meeting> spec = where(null);
 

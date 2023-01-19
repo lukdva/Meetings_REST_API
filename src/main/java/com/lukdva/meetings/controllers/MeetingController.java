@@ -6,7 +6,6 @@ import com.lukdva.meetings.dtos.MeetingResponseDTO;
 import com.lukdva.meetings.models.MeetingFilter;
 import com.lukdva.meetings.models.Meeting;
 import com.lukdva.meetings.services.MeetingsService;
-import com.lukdva.meetings.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -33,8 +32,7 @@ public class MeetingController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteMeeting(@PathVariable Long id) {
-        Long userId = JwtUtils.getUserId();
-        meetingsService.deleteMeeting(id, userId);
+        meetingsService.deleteMeeting(id);
     }
 
     @PostMapping("/{id}/attendees/{userId}")

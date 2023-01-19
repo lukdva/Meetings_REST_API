@@ -2,6 +2,7 @@ package com.lukdva.meetings.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,6 +15,7 @@ import java.util.List;
 @Setter
 @Entity
 @NoArgsConstructor
+@AllArgsConstructor
 public class Meeting {
     @Id
     @GeneratedValue
@@ -54,13 +56,5 @@ public class Meeting {
             }
         }
         return null;
-    }
-
-    public void removeAttendee(Attendee attendee) {
-        attendees.remove(attendee);
-    }
-
-    public boolean isAttendeeAvailable(Long id) {
-        return getAttendee(id) != null;
     }
 }

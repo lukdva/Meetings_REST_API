@@ -25,4 +25,10 @@ public class Attendee {
     @JsonIgnoreProperties({"responsiblePerson", "attendees"})
     private Meeting meeting;
     private LocalDateTime added;
+
+    public Attendee(User user, Meeting meeting){
+        this.user= user;
+        this.meeting = meeting;
+        added= LocalDateTime.now();
+    }
 }
