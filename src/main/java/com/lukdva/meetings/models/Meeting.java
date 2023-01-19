@@ -48,13 +48,4 @@ public class Meeting {
         }
         return false;
     }
-
-    public Attendee getAttendee(Long id) {
-        for (Attendee attendee : attendees) {
-            if (attendee.getId().equals(id)) {
-                return attendee;
-            }
-        }
-        return null;
-    }
 }

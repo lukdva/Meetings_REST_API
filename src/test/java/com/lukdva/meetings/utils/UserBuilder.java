@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class UserBuilder {
-    private Long id = null;
+    private Long id = 100L;
     private String username = "user";
     private String email = "user@mail.com";
     private String passwordHash = "passwordHash";

@@ -25,7 +25,11 @@ You can start project by opening terminal and going to root directory and execut
 ./mvnw spring-boot:run
 ```
 Swagger documentation can be accessed via endpoint ```/swagger-ui/index.html```
-
+## Tests
+You can run unit tests by opening terminal and going to root directory and executing command:
+```
+./mvnw  test
+```
 
 
 
