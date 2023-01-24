@@ -1,5 +1,6 @@
 package com.lukdva.meetings.services;
 
+import com.lukdva.meetings.exceptions.unauthorized.BadCredentialsException;
 import com.lukdva.meetings.models.User;
 import com.lukdva.meetings.models.UserDetailsImpl;
 import com.lukdva.meetings.repositories.UserRepository;
@@ -25,7 +26,7 @@ public class MyDatabaseUserDetailsService implements UserDetailsService {
         exampleUser.setUsername(username);
         Example<User> example = Example.of(exampleUser);
         Optional<User> actual = userRepository.findOne(example);
-        User user = actual.orElseThrow(() -> new RuntimeException("Invalid credentials"));
+        User user = actual.orElseThrow(() -> new BadCredentialsException(username));
         GrantedAuthority authority = new SimpleGrantedAuthority(user.getRole().toString());
         return new UserDetailsImpl(user.getUsername(), user.getPasswordHash(), List.of(authority), user.getId());
     }

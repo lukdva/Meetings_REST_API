@@ -4,8 +4,10 @@ import com.lukdva.meetings.exceptions.badRequest.CannotRemoveResponsiblePersonFr
 import com.lukdva.meetings.exceptions.badRequest.PersonAlreadyAddedToMeetingException;
 import com.lukdva.meetings.exceptions.badRequest.PersonHasConflictingMeetingException;
 import com.lukdva.meetings.exceptions.notFound.NotFoundException;
+import com.lukdva.meetings.exceptions.unauthorized.BadCredentialsException;
 import com.lukdva.meetings.exceptions.unauthorized.BadTokenException;
-import com.lukdva.meetings.exceptions.unauthorized.WrongEntityOwnerException;
+import com.lukdva.meetings.exceptions.forbidden.NonAdminCannotChangeUserRoleException;
+import com.lukdva.meetings.exceptions.forbidden.WrongEntityOwnerException;
 import com.lukdva.meetings.models.ApiError;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -45,7 +47,7 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(value = PersonHasConflictingMeetingException.class)
     public ResponseEntity<ApiError> handlePersonHasConflictingMeetingException(PersonHasConflictingMeetingException e) {
-        Object[] objectsToFormatMessage = new Object[]{e.getPerson().getName(), e.getMeeting().getStartDate(), e.getMeeting().getEndDate()};
+        Object[] objectsToFormatMessage = new Object[]{e.getUser().getName(), e.getMeeting().getStartDate(), e.getMeeting().getEndDate()};
         ApiError error = generateErrorResponse(objectsToFormatMessage, e.getErrorCode(), e);
         return new ResponseEntity<>(error, e.getHttpStatus());
     }
@@ -63,7 +65,18 @@ public class RestExceptionHandler {
         ApiError error = generateErrorResponse(objectsToFormatMessage, e.getErrorCode(), e);
         return new ResponseEntity<>(error, e.getHttpStatus());
     }
-
+    @ExceptionHandler(value = NonAdminCannotChangeUserRoleException.class)
+    public ResponseEntity<ApiError> handleNonAdminCannotChangeUserRole(NonAdminCannotChangeUserRoleException e) {
+        Object[] objectsToFormatMessage = new Object[]{e.getUserId()};
+        ApiError error = generateErrorResponse(objectsToFormatMessage, e.getErrorCode(), e);
+        return new ResponseEntity<>(error, e.getHttpStatus());
+    }
+    @ExceptionHandler(value = BadCredentialsException.class)
+    public ResponseEntity<ApiError> handleBadCredentialsException(BadCredentialsException e) {
+        Object[] objectsToFormatMessage = new Object[]{e.getUsername()};
+        ApiError error = generateErrorResponse(objectsToFormatMessage, e.getErrorCode(), e);
+        return new ResponseEntity<>(error, e.getHttpStatus());
+    }
     @ExceptionHandler(value = RuntimeException.class)
     public ResponseEntity<ApiError> handleDefaultException(RuntimeException e) {
         ApiError error = new ApiError();

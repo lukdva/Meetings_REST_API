@@ -2,6 +2,9 @@ package com.lukdva.meetings.services;
 
 import com.lukdva.meetings.dtos.UserCreateDto;
 import com.lukdva.meetings.dtos.UserEditDto;
+import com.lukdva.meetings.exceptions.notFound.NotFoundException;
+import com.lukdva.meetings.exceptions.forbidden.NonAdminCannotChangeUserRoleException;
+import com.lukdva.meetings.exceptions.forbidden.WrongEntityOwnerException;
 import com.lukdva.meetings.models.Role;
 import com.lukdva.meetings.models.User;
 import com.lukdva.meetings.repositories.UserRepository;
@@ -35,9 +38,9 @@ public class UserService {
         Boolean isSelfEditing = JwtUtils.getUserId() == id;
 
         if (!(isAdmin || isSelfEditing)) {
-            throw new RuntimeException("Unauthorized");
+            throw new WrongEntityOwnerException("User", id, JwtUtils.getUserId());
         }
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User", id));
 
         if (userEditDto.getUsername() != null) {
             user.setUsername(userEditDto.getUsername());
@@ -51,7 +54,7 @@ public class UserService {
         }
         if (userEditDto.getRole() != null) {
             if (!isAdmin) {
-                throw new RuntimeException("Unauthorized to change user role");
+                throw new NonAdminCannotChangeUserRoleException(JwtUtils.getUserId());
             }
             user.setRole(userEditDto.getRole());
         }
@@ -62,6 +65,6 @@ public class UserService {
     }
 
     public User getUser(Long userId) {
-        return userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));//TODO use specific exception class
+        return userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User", userId));
     }
 }

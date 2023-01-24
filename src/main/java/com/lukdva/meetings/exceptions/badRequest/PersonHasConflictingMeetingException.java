@@ -7,14 +7,14 @@ import lombok.Getter;
 
 @Getter
 public class PersonHasConflictingMeetingException extends BadRequestException implements BaseExceptionInterface {
-    private final User person;
+    private final User user;
     private final Meeting meeting;
     private final long errorCode = 1L;
 
 
-    public PersonHasConflictingMeetingException(User person, Meeting meeting) {
-        super(String.format("PersonId: %s , Meeting to be added to Id: %s", person.getId(), meeting.getId()));
-        this.person = person;
+    public PersonHasConflictingMeetingException(User user, Meeting meeting) {
+        super(String.format("UserId: %s , Meeting to be added to Id: %s", user.getId(), meeting.getId()));
+        this.user = user;
         this.meeting = meeting;
     }
 

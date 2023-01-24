@@ -1,5 +1,10 @@
 package com.lukdva.meetings.services;
 
+import com.lukdva.meetings.exceptions.badRequest.CannotRemoveResponsiblePersonFromMeetingException;
+import com.lukdva.meetings.exceptions.badRequest.PersonAlreadyAddedToMeetingException;
+import com.lukdva.meetings.exceptions.badRequest.PersonHasConflictingMeetingException;
+import com.lukdva.meetings.exceptions.notFound.NotFoundException;
+import com.lukdva.meetings.exceptions.forbidden.WrongEntityOwnerException;
 import com.lukdva.meetings.models.Attendee;
 import com.lukdva.meetings.models.Meeting;
 import com.lukdva.meetings.models.MeetingFilter;
@@ -32,15 +37,12 @@ public class MeetingsService {
         meeting.addAttendee(attendee);
 
         if (personHasConflictingMeetings(meeting.getResponsiblePerson(), meeting)) {
-            //  throw new PersonHasConflictingMeetingException(meeting.getResponsiblePerson(), meeting);//TODO refactor this exception class
-            throw new RuntimeException("Person has conflicting meetings");
+              throw new PersonHasConflictingMeetingException(meeting.getResponsiblePerson(), meeting);
         }
-        //TODO move responsible person's addition as attendee here (from MeetingAssembler)
         meetingRepository.save(meeting);
     }
     public Meeting getMeeting(Long id) {
-//        return meetingRepository.findById(id).orElseThrow(() -> new NotFoundException("Meeting", id)); //TODO refactor this exception class
-        return meetingRepository.findById(id).orElseThrow(() -> new RuntimeException("Meeting not found"));
+        return meetingRepository.findById(id).orElseThrow(() -> new NotFoundException("Meeting", id));
     }
     public boolean personHasConflictingMeetings(User user, Meeting meetingToBeAttended) {
         List<Meeting> list = meetingRepository.findAll(where(meetingsThatUserIsAttending(user.getId())).and(dateRangesOverlap(meetingToBeAttended)));
@@ -51,31 +53,27 @@ public class MeetingsService {
         User user = userService.getUser(userId);
         Meeting meeting = getMeeting(meetingId);
         if (meeting.doesContainPersonAsAttendee(user.getId())) {
-//            throw new PersonAlreadyAddedToMeetingException(person, meeting);// TODO refactor exception
-            throw new RuntimeException("User already added to meeting");
+            throw new PersonAlreadyAddedToMeetingException(user, meeting);
         }
         if (personHasConflictingMeetings(user, meeting)) {
-//            throw new PersonHasConflictingMeetingException(person, meeting);//TODO refactor exception
-            throw new RuntimeException("Person has conflicting meeting");
+            throw new PersonHasConflictingMeetingException(user, meeting);
         }
 
         Attendee attendee = new Attendee(user, meeting);
         attendeesRepository.save(attendee);
 
-        meeting.addAttendee(attendee); //TODO Is this neccessary?
+        meeting.addAttendee(attendee);
         return meeting;
     }
     public void removeAttendeeFromMeeting(Long meetingId, Long attendeeId) {
         Meeting meeting = getMeeting(meetingId);
-        Attendee attendee = attendeesRepository.findById(attendeeId).orElseThrow(() -> new RuntimeException("Attendee not found")); //TODO move to attendee service and add specific exception
+        Attendee attendee = attendeesRepository.findById(attendeeId).orElseThrow(() -> new NotFoundException("Attendee",attendeeId));
 
         if (!attendee.getMeeting().getId().equals(meetingId)) {
-//            throw new NotFoundException("Attendee", attendeeId);//TODO refactor exception
-            throw new RuntimeException("Attendee is not available at the meeting");
+            throw new NotFoundException("Attendee", attendeeId);
         }
         if (attendee.getUser().getId().equals(meeting.getResponsiblePerson().getId())) {
-//            throw new CannotRemoveResponsiblePersonFromMeetingException(meeting.getResponsiblePerson(), meeting);// TODO refactor exception
-            throw new RuntimeException("Cannot remove responsible person from meeting");
+            throw new CannotRemoveResponsiblePersonFromMeetingException(meeting.getResponsiblePerson(), meeting);
         }
         attendeesRepository.deleteById(attendeeId);
     }
@@ -83,8 +81,7 @@ public class MeetingsService {
         Long userId = JwtUtils.getUserId();
         Meeting meeting = getMeeting(meetingId);
         if (!meeting.getResponsiblePerson().getId().equals(userId)) {
-//            throw new WrongEntityOwnerException("Meeting", meetingId, userId);// TODO refactor exception
-            throw new RuntimeException("Unauthorized");
+            throw new WrongEntityOwnerException("Meeting", meetingId, userId);
         }
         meetingRepository.deleteById(meetingId);
     }

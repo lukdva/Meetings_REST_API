@@ -2,7 +2,10 @@ package com.lukdva.meetings.services;
 
 
 import com.lukdva.meetings.exceptions.badRequest.CannotRemoveResponsiblePersonFromMeetingException;
+import com.lukdva.meetings.exceptions.badRequest.PersonAlreadyAddedToMeetingException;
+import com.lukdva.meetings.exceptions.badRequest.PersonHasConflictingMeetingException;
 import com.lukdva.meetings.exceptions.notFound.NotFoundException;
+import com.lukdva.meetings.exceptions.forbidden.WrongEntityOwnerException;
 import com.lukdva.meetings.models.*;
 import com.lukdva.meetings.repositories.AttendeesRepository;
 import com.lukdva.meetings.repositories.MeetingRepository;
@@ -76,7 +79,7 @@ class MeetingServiceUnitTest {
     void tryingToGetNonExistentMeetingThrowsException() {
         when(meetingRepository.findById(anyLong())).thenReturn(Optional.empty());
         Exception exception = assertThrows(NotFoundException.class, () -> meetingsService.getMeeting(1L));
-        String expectedMessage = "Meeting not found";
+        String expectedMessage = String.format("Not found entityName: %s , entityId: %d", "Meeting", 1L);
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
@@ -97,8 +100,8 @@ class MeetingServiceUnitTest {
         when(meetingRepository.findById(meeting.getId())).thenReturn(Optional.of(meeting));
         jwtUtils.when(JwtUtils::getUserId).thenReturn(userIdOfNonResponsiblePerson);
 
-        Exception exception = assertThrows(CannotRemoveResponsiblePersonFromMeetingException.class, () -> meetingsService.deleteMeeting(meeting.getId()));
-        String expectedMessage = "Unauthorized";
+        Exception exception = assertThrows(WrongEntityOwnerException.class, () -> meetingsService.deleteMeeting(meeting.getId()));
+        String expectedMessage = String.format("User: %d, entityName: %s , entityId: %d", userIdOfNonResponsiblePerson, "Meeting", meeting.getId());
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
@@ -142,8 +145,8 @@ class MeetingServiceUnitTest {
         when(userService.getUser(user.getId())).thenReturn(user);
         when(meetingRepository.findById(meeting.getId())).thenReturn(Optional.of(meeting));
 
-        Exception exception = assertThrows(RuntimeException.class, () -> meetingsService.addPersonToMeeting(meeting.getId(), user.getId()));
-        String expectedMessage = "User already added to meeting";
+        Exception exception = assertThrows(PersonAlreadyAddedToMeetingException.class, () -> meetingsService.addPersonToMeeting(meeting.getId(), user.getId()));
+        String expectedMessage = String.format("PersonId: %s , Meeting that the person already added Id: %s", user.getId(), meeting.getId());
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
@@ -157,8 +160,8 @@ class MeetingServiceUnitTest {
         when(meetingRepository.findById(meeting.getId())).thenReturn(Optional.of(meeting));
         when(meetingRepository.findAll((Specification<Meeting>) any())).thenReturn(List.of(meetingUserAttends));
 
-        Exception exception = assertThrows(RuntimeException.class, () -> meetingsService.addPersonToMeeting(meeting.getId(), user.getId()));
-        String expectedMessage = "Person has conflicting meeting";
+        Exception exception = assertThrows(PersonHasConflictingMeetingException.class, () -> meetingsService.addPersonToMeeting(meeting.getId(), user.getId()));
+        String expectedMessage = String.format("PersonId: %s , Meeting to be added to Id: %s", user.getId(), meeting.getId());
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
@@ -175,7 +178,7 @@ class MeetingServiceUnitTest {
 
         verify(attendeesRepository).deleteById(attendee.getId());
     }
-    @Test//TODO
+    @Test
     void tryingToRemoveNonExistingAttendeeThrowsException() {
         User user = UserBuilder.anUser().build();
         Meeting meeting = MeetingBuilder.aMeeting().withId(8L).withUserAsAttendee(user).build();
@@ -185,8 +188,8 @@ class MeetingServiceUnitTest {
         when(attendeesRepository.findById(any())).thenReturn(Optional.empty());
         when(meetingRepository.findById(meeting.getId())).thenReturn(Optional.of(meeting));
 
-        Exception exception = assertThrows(RuntimeException.class, () -> meetingsService.removeAttendeeFromMeeting(meeting.getId(), nonExistingAttendeeId));
-        String expectedMessage = "Attendee not found";
+        Exception exception = assertThrows(NotFoundException.class, () -> meetingsService.removeAttendeeFromMeeting(meeting.getId(), nonExistingAttendeeId));
+        String expectedMessage = String.format("Not found entityName: %s , entityId: %d", "Attendee", nonExistingAttendeeId);
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
@@ -201,7 +204,7 @@ class MeetingServiceUnitTest {
         when(meetingRepository.findById(meetingWithNoAttendees.getId())).thenReturn(Optional.of(meeting));
 
         Exception exception = assertThrows(RuntimeException.class, () -> meetingsService.removeAttendeeFromMeeting(meetingWithNoAttendees.getId(), attendee.getId()));
-        String expectedMessage = "Attendee is not available at the meeting";
+        String expectedMessage = String.format("Not found entityName: %s , entityId: %d", "Attendee", attendee.getId());
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
@@ -214,8 +217,8 @@ class MeetingServiceUnitTest {
         when(attendeesRepository.findById(attendee.getId())).thenReturn(Optional.of(attendee));
         when(meetingRepository.findById(meeting.getId())).thenReturn(Optional.of(meeting));
 
-        Exception exception = assertThrows(RuntimeException.class, () -> meetingsService.removeAttendeeFromMeeting(meeting.getId(), attendee.getId()));
-        String expectedMessage = "Cannot remove responsible person from meeting";
+        Exception exception = assertThrows(CannotRemoveResponsiblePersonFromMeetingException.class, () -> meetingsService.removeAttendeeFromMeeting(meeting.getId(), attendee.getId()));
+        String expectedMessage = String.format("ResponsiblePersonId: %d , meetingId: %d", meeting.getResponsiblePerson().getId(), meeting.getId());
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
@@ -238,8 +241,8 @@ class MeetingServiceUnitTest {
         when(meetingRepository.findById(meeting.getId())).thenReturn(Optional.of(meeting));
         jwtUtils.when(JwtUtils::getUserId).thenReturn(userNonResponsiblePerson.getId());
 
-        Exception exception = assertThrows(RuntimeException.class, () -> meetingsService.deleteMeeting(meeting.getId()));
-        String expectedMessage = "Unauthorized";
+        Exception exception = assertThrows(WrongEntityOwnerException.class, () -> meetingsService.deleteMeeting(meeting.getId()));
+        String expectedMessage = String.format("User: %d, entityName: %s , entityId: %d", userNonResponsiblePerson.getId(), "Meeting", meeting.getId());
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
     }
